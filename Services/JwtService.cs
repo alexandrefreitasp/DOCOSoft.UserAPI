@@ -1,32 +1,59 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using DOCOSoft.UserAPI.Services.Interfaces;
 using Microsoft.IdentityModel.Tokens;
 
 namespace DOCOSoft.UserAPI.Services
-{
-    public class JwtService(IConfiguration config)
+{    public class JwtService(IConfiguration configuration) : IJwtService
     {
-        public string GenerateToken(string? userId, string email, string role)
+        private readonly string _secretKey = configuration["JwtSettings:SecretKey"]!;
+        private readonly string _issuer = configuration["JwtSettings:Issuer"]!;
+        private readonly string _audience = configuration["JwtSettings:Audience"]!;
+
+        public string GenerateToken(string userId, string email)
         {
-            var key = Encoding.ASCII.GetBytes(config["JwtSettings:SecretKey"]!);
-            var claims = new List<Claim>
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_secretKey);
+            var tokenDescriptor = new SecurityTokenDescriptor
             {
-                new(ClaimTypes.NameIdentifier, userId!),
-                new(ClaimTypes.Email, email),
-                new(ClaimTypes.Role, role)
+                Subject = new ClaimsIdentity(new[]
+                {
+                    new Claim(ClaimTypes.NameIdentifier, userId),
+                    new Claim(ClaimTypes.Email, email)
+                }),
+                Expires = DateTime.UtcNow.AddHours(1),
+                Issuer = _issuer,
+                Audience = _audience,
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
+        }
 
-            var token = new JwtSecurityToken(
-                config["JwtSettings:Issuer"],
-                config["JwtSettings:Audience"],
-                claims,
-                expires: DateTime.UtcNow.AddHours(1),
-                signingCredentials: new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256)
-            );
-
-            return new JwtSecurityTokenHandler().WriteToken(token);
+        public bool ValidateToken(string token)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(_secretKey);
+            try
+            {
+                tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidIssuer = _issuer,
+                    ValidAudience = _audience,
+                    ClockSkew = TimeSpan.Zero
+                }, out _);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
-
+   
 }

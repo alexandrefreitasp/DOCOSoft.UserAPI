@@ -29,11 +29,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-
 builder.Services.AddAuthorization();
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService,UserService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddSingleton<JwtService>();
 
 builder.Services.AddControllers();
@@ -63,7 +64,6 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
-
 
 builder.Services.AddSwaggerGen();
 

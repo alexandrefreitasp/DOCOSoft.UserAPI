@@ -1,0 +1,6 @@
+@DOCOSoft.UserAPI_HostAddress = http://localhost:5041
+
+GET {{DOCOSoft.UserAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
